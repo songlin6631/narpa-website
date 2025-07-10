@@ -1,0 +1,1 @@
+This is the full source code for the NARPA brand website. To deploy, run: npm install && npm run build

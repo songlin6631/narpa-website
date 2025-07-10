@@ -1,6 +1,5 @@
-
 {
-  "name": "narpa-website",
+  "name": "narpa-site",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
@@ -9,10 +8,11 @@
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.4.3"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^5.0.0"
+    "vite": "^4.3.9",
+    "@vitejs/plugin-react": "^4.0.0"
   }
 }
