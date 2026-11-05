@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
 function Hero() {
   return (
     <section
-      className="relative min-h-[100svh] overflow-hidden bg-ink"
+      className="relative isolate min-h-[100svh] overflow-hidden bg-ink"
       aria-label="阈 · 首页主视觉"
     >
       <img
@@ -31,10 +31,22 @@ function Hero() {
         width={1920}
         height={1088}
         fetchPriority="high"
-        className="absolute inset-0 h-full w-full object-cover object-[70%_center] md:object-[center_35%]"
+        className="absolute inset-0 z-0 h-full w-full object-cover object-[70%_center] md:object-[center_35%]"
       />
-      <div className="pointer-events-none absolute inset-0 hero-scrim" aria-hidden />
-      <div className="container-ed relative flex min-h-[100svh] flex-col justify-end pb-20 pt-32 md:justify-center md:pb-24">
+      <video
+        className="hero-motion-video absolute inset-0 z-10 h-full w-full object-cover object-[70%_center] md:object-[center_35%]"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster="/images/threshold-hero-scene.svg"
+        aria-hidden="true"
+      >
+        <source src="/videos/hero-wan2-seamless-loop-v2.mp4" type="video/mp4" />
+      </video>
+      <div className="pointer-events-none absolute inset-0 z-20 hero-scrim" aria-hidden />
+      <div className="container-ed relative z-30 flex min-h-[100svh] flex-col justify-end pb-20 pt-32 md:justify-center md:pb-24">
         <p className="eyebrow text-hero-gold animate-fade-up">INDEPENDENT RESEARCH INSTITUTE</p>
         <h1 className="animate-fade-up mt-6 text-[2.6rem] leading-[1.2] text-hero sm:text-6xl md:text-7xl">
           <span className="block whitespace-nowrap">在变化发生之前，</span>
