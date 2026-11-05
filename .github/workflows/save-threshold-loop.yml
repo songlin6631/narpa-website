@@ -1,0 +1,28 @@
+name: Preserve THRESHOLD seamless loop V2
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/save-threshold-loop.yml
+permissions:
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download crossfaded seamless loop
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion
+          curl -L --fail --retry 3 --max-time 90 --silent --show-error 'https://sb-5ub2qcqz5pxa.vercel.run/loop.mp4' -o threshold-motion/hero-wan2-seamless-loop-v2.mp4
+          test "$(stat -c%s threshold-motion/hero-wan2-seamless-loop-v2.mp4)" -gt 800000
+          file threshold-motion/hero-wan2-seamless-loop-v2.mp4
+      - name: Commit durable loop asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/hero-wan2-seamless-loop-v2.mp4
+          git commit -m "Add crossfaded seamless THRESHOLD background loop"
+          git push origin HEAD:threshold-motion-source-temp
