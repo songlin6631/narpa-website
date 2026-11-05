@@ -1,0 +1,30 @@
+name: Preserve approved THRESHOLD long loop
+on:
+  push:
+    branches: [threshold-motion-source-temp]
+    paths: [.github/workflows/preserve-approved-long-loop.yml]
+permissions:
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve long loop and alternate source
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion/v9
+          curl --fail --location --retry 3 --max-time 100 --silent --show-error 'https://sb-7huvhcejrf6b.vercel.run/approved-long-loop.mp4' -o threshold-motion/v9/approved-long-loop.mp4
+          curl --fail --location --retry 3 --max-time 100 --silent --show-error 'https://sb-7huvhcejrf6b.vercel.run/approved-motion-2.mp4' -o threshold-motion/v9/approved-motion-2.mp4
+          test "$(stat -c%s threshold-motion/v9/approved-long-loop.mp4)" -gt 3000000
+          test "$(stat -c%s threshold-motion/v9/approved-motion-2.mp4)" -gt 3000000
+          file threshold-motion/v9/*.mp4
+      - name: Commit durable video files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/v9
+          if ! git diff --cached --quiet; then
+            git commit -m "Preserve long-loop THRESHOLD new artwork video"
+            git push origin HEAD:threshold-motion-source-temp
+          fi
