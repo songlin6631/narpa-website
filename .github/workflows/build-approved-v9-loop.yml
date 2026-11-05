@@ -1,0 +1,36 @@
+name: Build approved THRESHOLD loop candidate
+on:
+  push:
+    branches: [threshold-motion-source-temp]
+    paths: [.github/workflows/build-approved-v9-loop.yml]
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libvidstab1.1
+      - name: Build temporal interpolation loop from genuine model animation
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT=threshold-motion/v9/approved-real-motion.mp4
+          test -s "$INPUT"
+          ffmpeg -hide_banner -loglevel error -y -i "$INPUT" -vf "vidstabdetect=shakiness=2:accuracy=12:result=/tmp/v9.trf" -f null -
+          ffmpeg -hide_banner -loglevel error -y -i "$INPUT" -vf "vidstabtransform=input=/tmp/v9.trf:smoothing=12:optzoom=0:interpol=bicubic,crop=810:466,scale=832:480,setsar=1" -an -c:v libx264 -crf 18 -pix_fmt yuv420p /tmp/v9-stable.mp4
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/v9-stable.mp4 -filter_complex "[0:v]split=3[a][b][c];[a]trim=start=0.5:end=2.5625,setpts=PTS-STARTPTS[center];[b]trim=start=2.5625:end=3.0625,setpts=PTS-STARTPTS[tail];[c]trim=start=0:end=0.5,setpts=PTS-STARTPTS[head];[tail][head]xfade=transition=fade:duration=0.4375:offset=0.0625[wrap];[center][wrap]concat=n=2:v=1:a=0,setpts=1.9*(PTS-STARTPTS),minterpolate=fps=24:mi_mode=mci:mc_mode=obmc:me_mode=bidir,format=yuv420p[out]" -map "[out]" -an -c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -movflags +faststart threshold-motion/v9/approved-loop-review.mp4
+          ffprobe -v error -show_entries stream=width,height,r_frame_rate,nb_frames -show_entries format=duration,size -of default=noprint_wrappers=1 threshold-motion/v9/approved-loop-review.mp4
+          test "$(stat -c%s threshold-motion/v9/approved-loop-review.mp4)" -gt 300000
+      - name: Commit stabilized review candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/v9/approved-loop-review.mp4
+          if ! git diff --cached --quiet; then
+            git commit -m "Render approved THRESHOLD V9 stabilized interpolated loop"
+            git push origin HEAD:threshold-motion-source-temp
+          fi
