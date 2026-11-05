@@ -26,3 +26,5 @@ jobs:
           git add threshold-motion/hero-wan2-camera-locked-v2.mp4
           git commit -m "Add locked-camera THRESHOLD motion v2"
           git push origin HEAD:threshold-motion-source-temp
+
+# retry-marker: stable route is live and returns the mp4 binary
