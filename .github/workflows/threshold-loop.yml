@@ -1,0 +1,39 @@
+name: Build THRESHOLD stabilized loop
+on:
+  push:
+    branches: [threshold-motion-source-temp]
+    paths: [.github/workflows/threshold-loop.yml]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validate original and create stabilized seamless-loop candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion
+          INPUT=threshold-motion/hero-wan2-i2v.mp4
+          test -s "$INPUT"
+          ffprobe -v error -show_entries stream=width,height,r_frame_rate -show_entries format=duration -of default=noprint_wrappers=1 "$INPUT"
+          # Frame-level stabilization is limited to small motions and must not freeze the waterfall
+          ffmpeg -hide_banner -loglevel error -y -i "$INPUT" -vf "vidstabdetect=shakiness=3:accuracy=12:result=/tmp/threshold.trf" -f null -
+          ffmpeg -hide_banner -loglevel error -y -i "$INPUT" -vf "vidstabtransform=input=/tmp/threshold.trf:smoothing=15:optzoom=0:interpol=bicubic,scale=832:480,crop=800:450,scale=832:468,pad=832:480:0:6:black,fps=16" -an -c:v libx264 -pix_fmt yuv420p -preset medium -crf 19 /tmp/stabilized.mp4
+          # Blend the last .56 sec of the generated clip back into the first .56 sec.
+          # Place that blend after the middle sequence so the first/last frames match.
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/stabilized.mp4 -filter_complex "[0:v]split=3[a][b][c];[a]trim=start=0.00:end=0.56,setpts=PTS-STARTPTS[first];[b]trim=start=2.50:end=3.06,setpts=PTS-STARTPTS[last];[last][first]xfade=transition=fade:duration=0.50:offset=0[wrap];[c]trim=start=0.56:end=2.50,setpts=PTS-STARTPTS[mid];[mid][wrap]concat=n=2:v=1:a=0,format=yuv420p[out]" -map "[out]" -an -c:v libx264 -pix_fmt yuv420p -preset medium -crf 19 -movflags +faststart threshold-motion/hero-wan2-loop-v8.mp4
+          ffprobe -v error -show_entries stream=width,height,nb_frames -show_entries format=duration,size -of default=noprint_wrappers=1 threshold-motion/hero-wan2-loop-v8.mp4
+      - name: Save result to working branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add threshold-motion/hero-wan2-loop-v8.mp4
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add stabilized crossfaded THRESHOLD loop candidate'
+            git push origin HEAD:threshold-motion-source-temp
+          fi
