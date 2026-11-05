@@ -1,0 +1,31 @@
+name: Save generated THRESHOLD animation
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/save-threshold-mp4.yml
+permissions:
+  contents: write
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated clip from temporary preview origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion
+          curl -L --fail --retry 3 --max-time 90 --silent --show-error 'https://sb-45hk6impouns.vercel.run/hero-wan2.mp4' -o threshold-motion/hero-wan2-i2v.mp4
+          test "$(stat -c%s threshold-motion/hero-wan2-i2v.mp4)" -gt 700000
+          file threshold-motion/hero-wan2-i2v.mp4
+      - name: Save animation to review branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/hero-wan2-i2v.mp4
+          if ! git diff --cached --quiet; then
+            git commit -m "Preserve generated THRESHOLD background video"
+            git push origin HEAD:threshold-motion-source-temp
+          fi
