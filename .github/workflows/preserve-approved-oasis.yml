@@ -1,0 +1,30 @@
+name: Preserve approved THRESHOLD oasis animation
+on:
+  push:
+    branches: [threshold-motion-source-temp]
+    paths: [.github/workflows/preserve-approved-oasis.yml]
+permissions:
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download approved naturalistic hero video and poster
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion/v9
+          curl --fail --location --retry 3 --max-time 60 --silent --show-error 'https://sb-7huvhcejrf6b.vercel.run/approved-real-motion.mp4' -o threshold-motion/v9/approved-real-motion.mp4
+          curl --fail --location --retry 3 --max-time 60 --silent --show-error 'https://sb-7huvhcejrf6b.vercel.run/approved-poster.png' -o threshold-motion/v9/approved-poster.png
+          test "$(stat -c%s threshold-motion/v9/approved-real-motion.mp4)" -gt 1000000
+          test "$(stat -c%s threshold-motion/v9/approved-poster.png)" -gt 2000000
+          file threshold-motion/v9/*
+      - name: Commit approved visual assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/v9
+          if ! git diff --cached --quiet; then
+            git commit -m "Save approved photorealistic oasis-to-future motion concept"
+            git push origin HEAD:threshold-motion-source-temp
+          fi
