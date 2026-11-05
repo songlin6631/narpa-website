@@ -1,0 +1,28 @@
+name: Preserve THRESHOLD locked-camera v2
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/save-threshold-v2.yml
+permissions:
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated video asset
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion
+          curl -L --fail --retry 3 --max-time 90 --silent --show-error 'https://d2jqrm6oza8nb6.cloudfront.net/datasets/458551db-d682-4c55-ada0-c1475b931921.mp4?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiOGJlNjkwMWVjN2RmMWM3ZCIsImJ1Y2tldCI6InJ1bndheS1kYXRhc2V0cyIsImV4cCI6MTc5NDAxMDM5OH0.hMITdjd0gGKebaZPtfnZJldoWmiQWVR5Dehc5QLXxUA' -o threshold-motion/hero-wan2-camera-locked-v2.mp4
+          test "$(stat -c%s threshold-motion/hero-wan2-camera-locked-v2.mp4)" -gt 900000
+          file threshold-motion/hero-wan2-camera-locked-v2.mp4
+      - name: Commit durable video asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-motion/hero-wan2-camera-locked-v2.mp4
+          git commit -m "Add locked-camera THRESHOLD motion v2"
+          git push origin HEAD:threshold-motion-source-temp
