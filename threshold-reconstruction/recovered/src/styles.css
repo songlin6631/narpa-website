@@ -174,3 +174,8 @@
 @keyframes breathe { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
 @utility animate-breathe { animation: breathe 2.4s ease-in-out infinite; }
 @utility border-hero-line { border-color: oklch(0.95 0.02 85 / 0.45); }
+
+/* Respect reduced-motion preferences while keeping the original hero artwork visible. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-motion-video { display: none !important; }
+}
