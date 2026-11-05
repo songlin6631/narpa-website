@@ -1,0 +1,33 @@
+name: Stage THRESHOLD generated motion clip
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/stage-threshold-motion.yml
+permissions:
+  contents: write
+jobs:
+  stage-video:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Retrieve AI-generated MP4 from public model output
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-motion
+          curl --fail --location --silent --show-error --retry 3 --max-time 90 --output threshold-motion/hero-wan2-i2v.mp4 'https://cbensimon-wan2-2-fp8da-aoti-preview2.hf.space/gradio_api/file=/tmp/gradio/fd474d2530921c7650b43cfaa32cbc0f868157b605f3bb72530525db3b6e5358/tmpqpwtyqzp.mp4'
+          test "$(stat -c%s threshold-motion/hero-wan2-i2v.mp4)" -gt 100000
+          file threshold-motion/hero-wan2-i2v.mp4
+      - name: Commit generated clip to temporary review branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add threshold-motion/hero-wan2-i2v.mp4
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Stage real generated THRESHOLD motion demo video'
+          git push origin HEAD:threshold-motion-source-temp
