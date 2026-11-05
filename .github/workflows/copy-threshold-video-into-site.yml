@@ -1,0 +1,28 @@
+name: Copy THRESHOLD hero video into recovered site assets
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/copy-threshold-video-into-site.yml
+permissions:
+  contents: write
+jobs:
+  copy-video:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy the approved seamless MP4 into the site public directory
+        run: |
+          set -euo pipefail
+          mkdir -p threshold-reconstruction/recovered/public/videos
+          cp threshold-motion/hero-wan2-seamless-loop-v2.mp4 threshold-reconstruction/recovered/public/videos/hero-wan2-seamless-loop-v2.mp4
+          test "$(stat -c%s threshold-reconstruction/recovered/public/videos/hero-wan2-seamless-loop-v2.mp4)" -gt 800000
+          file threshold-reconstruction/recovered/public/videos/hero-wan2-seamless-loop-v2.mp4
+      - name: Commit local site media asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-reconstruction/recovered/public/videos/hero-wan2-seamless-loop-v2.mp4
+          git commit -m "Add looping Wan video to THRESHOLD site public assets"
+          git push origin HEAD:threshold-motion-source-temp
