@@ -1,0 +1,60 @@
+name: Reconstruct THRESHOLD source archive
+on:
+  push:
+    branches:
+      - threshold-motion-source-temp
+    paths:
+      - .github/workflows/reconstruct-threshold-source.yml
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode and inspect source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, io, json, pathlib, tarfile, zipfile
+          root=pathlib.Path('threshold-reconstruction')
+          chunks=sorted(root.glob('part-*.b64'))
+          b64=''.join(p.read_text().strip() for p in chunks)
+          raw=base64.b64decode(b64, validate=True)
+          (root/'source-archive.gz').write_bytes(raw)
+          report=[f'parts={len(chunks)}',f'base64_chars={len(b64)}',f'compressed_bytes={len(raw)}',f'header={raw[:16].hex()}']
+          dec=gzip.decompress(raw)
+          (root/'source-unpacked.bin').write_bytes(dec)
+          report += [f'uncompressed_bytes={len(dec)}',f'uncompressed_header={dec[:64]!r}']
+          try:
+              with tarfile.open(fileobj=io.BytesIO(dec), mode='r:*') as tf:
+                  names=tf.getnames()
+                  report += [f'format=tar',f'entries={len(names)}'] + names[:80]
+                  out=root/'recovered'
+                  out.mkdir(exist_ok=True)
+                  tf.extractall(out)
+          except Exception as e:
+              report.append(f'tar_error={type(e).__name__}: {e}')
+          try:
+              with zipfile.ZipFile(io.BytesIO(dec)) as z:
+                  names=z.namelist()
+                  report += [f'format=zip',f'entries={len(names)}'] + names[:80]
+                  z.extractall(root/'recovered')
+          except Exception as e:
+              report.append(f'zip_error={type(e).__name__}: {e}')
+          try:
+              text=dec.decode('utf-8')
+              report += ['utf8_preview='+text[:3000]]
+          except Exception:
+              pass
+          (root/'reconstruction-report.txt').write_text('\n'.join(report),encoding='utf-8')
+          print('\n'.join(report))
+          PY
+      - name: Commit reconstructed source and report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threshold-reconstruction/source-archive.gz threshold-reconstruction/source-unpacked.bin threshold-reconstruction/reconstruction-report.txt threshold-reconstruction/recovered || true
+          git commit -m "Reconstruct original THRESHOLD Vercel source archive" || true
+          git push origin HEAD:threshold-motion-source-temp
